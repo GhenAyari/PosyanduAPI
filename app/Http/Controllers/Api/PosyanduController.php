@@ -8,6 +8,16 @@ use Illuminate\Support\Facades\DB;
 
 class PosyanduController extends Controller
 {
+
+    /**
+     * Mengambil data profil Posyandu
+     *
+     * Endpoint ini digunakan untuk mendapatkan data profil posyandu.
+     *
+     * @unauthenticated  <-- Ini buat ngasih tau Scramble kalau endpoint ini NDAK butuh login/token
+     *
+     * @response array{status: string, pesan: string, data: array{id: int, nama: string, alamat: string}}
+     */
     public function index()
     {
         // Mengambil data posyandu pertama (karena kita baru buat 1 dummy)
