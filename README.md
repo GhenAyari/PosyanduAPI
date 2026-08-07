@@ -96,16 +96,9 @@ php artisan serve
 ---
 
 
-## Catatan
+## Melihat dokumentasi api
 
-Jika terjadi perubahan struktur database:
-
-```bash
-php artisan migrate
+lalukan cara di bawah
 ```
-
-Jika ingin mengulang database dari awal:
-
-```bash
-php artisan migrate:fresh --seed
+http://localhost:8000/docs/api
 ```

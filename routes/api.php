@@ -49,6 +49,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/warga', [\App\Http\Controllers\Api\WargaController::class, 'index']);
 // Reset password warga
         Route::put('/warga/{id}/reset-password', [\App\Http\Controllers\Api\WargaController::class, 'resetPassword']);
+        // Pencatatan Kesehatan - Balita
+        Route::post('/pemeriksaan-balita', [\App\Http\Controllers\Api\PemeriksaanBalitaController::class, 'store']);
     });
 
     // ----------------------------------------------------
