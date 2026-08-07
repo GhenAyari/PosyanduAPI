@@ -1,0 +1,28 @@
+services:
+
+    laravel:
+        build: .
+        env_file:
+            - .env.docker
+        ports:
+            - "8000:8000"
+        volumes:
+            - .:/app
+        depends_on:
+            - mysql
+
+    mysql:
+        image: mysql:8.4
+        restart: always
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_DATABASE: posyandu_db
+            MYSQL_USER: root
+            MYSQL_PASSWORD: root
+        ports:
+            - "3307:3306"
+        volumes:
+            - mysql_data:/var/lib/mysql
+
+volumes:
+    mysql_data:

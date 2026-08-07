@@ -8,13 +8,14 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens; // Tambahin ini
+use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'username', 'email', 'password', 'role', 'posyandu_id'])] // Tambahin username & role
+// UBAH posyandu_id MENJADI posyandu DI BAWAH INI:
+#[Fillable(['name', 'username', 'email', 'password', 'role', 'posyandu'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, HasApiTokens; // Tambahin HasApiTokens
+    use HasFactory, Notifiable, HasApiTokens;
 
     protected function casts(): array
     {

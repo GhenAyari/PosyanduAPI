@@ -13,13 +13,15 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('posyandu_id')->nullable()->constrained('posyandus')->nullOnDelete();
             $table->string('name');
+            // Tambahan 3 kolom baru di bawah ini:
             $table->string('username')->unique();
+            $table->string('role')->default('warga');
+            $table->string('posyandu')->nullable(); // nullable karena Superadmin tidak terikat 1 posyandu
+
             $table->string('email')->unique()->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->enum('role', ['superadmin', 'kader', 'warga'])->default('warga');
             $table->rememberToken();
             $table->timestamps();
         });
