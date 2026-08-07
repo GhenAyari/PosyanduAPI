@@ -44,8 +44,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/artikels', [ArtikelController::class, 'store']);
         Route::post('/artikels/{id}', [ArtikelController::class, 'update']);
         Route::delete('/artikels/{id}', [ArtikelController::class, 'destroy']);
-
-        // Nanti rute untuk Form KIA, Trantib, Sosial, dll bisa ditaruh di sini
+        Route::post('/warga', [\App\Http\Controllers\Api\WargaController::class, 'store']);
+        // Mengambil daftar warga
+        Route::get('/warga', [\App\Http\Controllers\Api\WargaController::class, 'index']);
+// Reset password warga
+        Route::put('/warga/{id}/reset-password', [\App\Http\Controllers\Api\WargaController::class, 'resetPassword']);
     });
 
     // ----------------------------------------------------
