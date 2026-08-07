@@ -1,13 +1,6 @@
 # Posyandu API
 
 Backend API untuk Website Posyandu Loa Duri Ulu.
-
-## Tech Stack
-
-- Laravel 13
-- MySQL 8
-- Docker
-
 ---
 
 ## Menjalankan dengan Docker
