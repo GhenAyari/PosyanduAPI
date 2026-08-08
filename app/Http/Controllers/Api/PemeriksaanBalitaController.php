@@ -13,6 +13,7 @@ class PemeriksaanBalitaController extends Controller
     {
         // 1. Validasi input dari React
         $request->validate([
+            'pemeriksaan_id' => 'nullable|integer',
             'anak_id'              => 'required|exists:warga_anak,id',
             'tanggal_periksa'      => 'required|date',
             'umur_bulan'           => 'required|integer|min:0',
@@ -41,21 +42,23 @@ class PemeriksaanBalitaController extends Controller
         }
 
         // 3. Simpan semua data ke database
-        $pemeriksaan = PemeriksaanBalita::create([
-            'anak_id'              => $request->anak_id,
-            'kader_id'             => $request->user()->id, // Ambil ID kader yang sedang login
-            'tanggal_periksa'      => $request->tanggal_periksa,
-            'umur_bulan'           => $request->umur_bulan,
-            'berat_badan'          => $request->berat_badan,
-            'tinggi_badan'         => $request->tinggi_badan,
-            'lingkar_kepala'       => $request->lingkar_kepala,
-            'lingkar_lengan'       => $request->lingkar_lengan,
-            'status_gizi'          => $request->status_gizi,
-            'catatan_perkembangan' => $request->catatan_perkembangan,
-            'status_form'          => $request->status_form,
-            'imunisasi'            => $request->imunisasi, // Otomatis jadi JSON berkat $casts di Model
-            'dokumentasi_foto'     => count($fotoPaths) > 0 ? $fotoPaths : null,
-        ]);
+        $pemeriksaan = PemeriksaanBalita::updateOrCreate(
+            ['id' => $request->pemeriksaan_id], // Kunci pencarian: Jika null, buat baru. Jika ada, update.
+            [
+                'anak_id'              => $request->anak_id,
+                'kader_id'             => $request->user()->id,
+                'tanggal_periksa'      => $request->tanggal_periksa,
+                'umur_bulan'           => $request->umur_bulan,
+                'berat_badan'          => $request->berat_badan,
+                'tinggi_badan'         => $request->tinggi_badan,
+                'lingkar_kepala'       => $request->lingkar_kepala,
+                'lingkar_lengan'       => $request->lingkar_lengan,
+                'catatan_perkembangan' => $request->catatan_perkembangan,
+                'status_gizi'          => $request->status_gizi,
+                'status_form'          => $request->status_form,
+                'dokumentasi_foto'     => count($fotoPaths) > 0 ? $fotoPaths : null,
+            ]
+        );
 
         return response()->json([
             'status' => 'sukses',

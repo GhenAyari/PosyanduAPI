@@ -114,4 +114,44 @@ class WargaController extends Controller
 
         return response()->json(['status' => 'gagal', 'pesan' => 'Akun pengguna tidak ditemukan.'], 404);
     }
+    public function getListAnak()
+    {
+        // Murni hanya mengambil kolom identitas dari tabel anak
+        $anak = \App\Models\WargaAnak::select('id', 'nama_anak', 'tanggal_lahir', 'jenis_kelamin')
+            ->distinct() // Mencegah nama dan data yang 100% sama persis ditarik berulang kali
+            ->get();
+
+        return response()->json([
+            'status' => 'sukses',
+            'data' => $anak
+        ]);
+    }
+    public function getListRemaja()
+    {
+        // Mengambil semua data remaja beserta tanggal lahir untuk hitung umur di React
+        $remaja = \App\Models\WargaRemaja::select('id', 'nama_remaja', 'tanggal_lahir', 'jenis_kelamin')->get();
+
+        return response()->json([
+            'status' => 'sukses',
+            'data' => $remaja
+        ]);
+    }
+    public function getListIbu()
+    {
+        // Mengambil warga dewasa khusus perempuan (P)
+        $ibu = \App\Models\WargaDewasa::where('jenis_kelamin', 'P')
+            ->select('id', 'nama_lengkap', 'tanggal_lahir')
+            ->get();
+
+        return response()->json([
+            'status' => 'sukses',
+            'data' => $ibu
+        ]);
+    }
+    public function getListLansia()
+    {
+        // Mengambil semua warga dewasa untuk dropdown form Lansia (Laki-laki & Perempuan)
+        $lansia = \App\Models\WargaDewasa::select('id', 'nama_lengkap', 'jenis_kelamin')->get();
+        return response()->json(['status' => 'sukses', 'data' => $lansia]);
+    }
 }

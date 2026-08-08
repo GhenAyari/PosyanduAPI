@@ -51,6 +51,27 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/warga/{id}/reset-password', [\App\Http\Controllers\Api\WargaController::class, 'resetPassword']);
         // Pencatatan Kesehatan - Balita
         Route::post('/pemeriksaan-balita', [\App\Http\Controllers\Api\PemeriksaanBalitaController::class, 'store']);
+        // Mengambil daftar nama anak untuk Dropdown form pemeriksaan
+        Route::get('/warga/anak', [\App\Http\Controllers\Api\WargaController::class, 'getListAnak']);
+        // Dropdown nama remaja
+        Route::get('/warga/remaja', [\App\Http\Controllers\Api\WargaController::class, 'getListRemaja']);
+
+        // Pencatatan Kesehatan - Remaja
+        Route::post('/pemeriksaan-remaja', [\App\Http\Controllers\Api\PemeriksaanRemajaController::class, 'store']);
+
+        // Dropdown nama Ibu
+        Route::get('/warga/ibu', [\App\Http\Controllers\Api\WargaController::class, 'getListIbu']);
+
+        // Pencatatan Kesehatan - Ibu Hamil
+        Route::post('/pemeriksaan-hamil', [\App\Http\Controllers\Api\PemeriksaanHamilController::class, 'store']);
+
+        // Dropdown nama Lansia
+        Route::get('/warga/lansia', [\App\Http\Controllers\Api\WargaController::class, 'getListLansia']);
+
+        // Pencatatan Kesehatan - Lansia
+        Route::post('/pemeriksaan-lansia', [\App\Http\Controllers\Api\PemeriksaanLansiaController::class, 'store']);
+        // Mengambil daftar draf berdasarkan kelompok sasaran
+        Route::get('/draf-pemeriksaan/{kelompok}', [\App\Http\Controllers\Api\DraftController::class, 'getDrafts']);
     });
 
     // ----------------------------------------------------
