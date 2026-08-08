@@ -7,58 +7,80 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\WargaKeluarga;
 use App\Models\WargaAnak;
+use App\Models\WargaRemaja;
+use App\Models\WargaDewasa;
+use App\Models\Posyandu; // Panggil model Posyandu
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 
 class WargaController extends Controller
 {
+    /**
+     * Helper untuk mendapatkan ID Posyandu dari User yang sedang login.
+     * Jika Superadmin/Puskesmas, kembalikan null (agar bisa lihat semua).
+     */
+    private function getPosyanduId()
+    {
+        $user = auth()->user();
+
+        // Jika role nya ketua atau kader, langsung kembalikan ID-nya
+        if (in_array($user->role, ['ketua', 'kader'])) {
+            return $user->posyandu_id; // <-- JAUH LEBIH SIMPEL & CEPAT
+        }
+
+        return null;
+    }
+
     public function store(Request $request)
     {
-        // 1. Validasi data dari React
         $request->validate([
             'nama_lengkap' => 'required|string',
             'nik'          => 'required|string|size:16|unique:warga_keluarga,nik_kepala_keluarga',
             'no_kk'        => 'required|string|size:16',
             'no_hp'        => 'nullable|string',
-            'anak'         => 'nullable|array', // Data anak berbentuk array dari React
+            'anak'         => 'nullable|array',
         ]);
 
-        // Mulai Transaksi (Jika di tengah jalan error, semua data batal disimpan)
+        // Ambil ID Posyandu dari user yang login
+        $posyanduId = $this->getPosyanduId();
+
+        // Jika null (misal kader belum di-set posyandunya), batalkan
+        if (!$posyanduId && auth()->user()->role !== 'superadmin') {
+            return response()->json(['status' => 'gagal', 'pesan' => 'Akun Anda tidak terikat pada Posyandu manapun.'], 403);
+        }
+
         DB::beginTransaction();
 
         try {
-            // 2. Buat Akun Login untuk Warga (di tabel users)
+            // 2. Buat Akun Login untuk Warga
             $user = User::create([
                 'name'     => $request->nama_lengkap,
-                'username' => $request->nik, // NIK jadi username
-                'password' => Hash::make($request->nik), // NIK jadi password awal
+                'username' => $request->nik,
+                'password' => $request->nik, // Biarkan casts yang meng-hash
                 'role'     => 'warga',
-                'posyandu' => $request->user()->posyandu // Ambil nama posyandu dari Kader yang sedang login
+                'posyandu_id' => $posyanduId // <-- UBAH JADI posyandu_id
             ]);
-
-            // 3. Buat Data Kepala Keluarga
+            // 3. Buat Data Kepala Keluarga (Sudah otomatis terisi posyandu_id)
             $keluarga = WargaKeluarga::create([
-                'posyandu_id'          => 1, // SEMENTARA: hardcode 1, nanti sesuaikan dengan ID posyandu kader
-                'user_id'              => $user->id, // Sambungkan ke akun yang baru dibuat
+                'posyandu_id'          => $posyanduId, // <-- TIDAK HARDCODE LAGI, OTOMATIS DARI USER LOGIN
+                'user_id'              => $user->id,
                 'nama_kepala_keluarga' => $request->nama_lengkap,
                 'no_kk'                => $request->no_kk,
                 'nik_kepala_keluarga'  => $request->nik,
                 'no_hp'                => $request->no_hp,
             ]);
 
-            // 4. Looping & Simpan Data Anak (Jika ada)
             if ($request->has('anak') && count($request->anak) > 0) {
                 foreach ($request->anak as $dataAnak) {
                     WargaAnak::create([
                         'keluarga_id'   => $keluarga->id,
                         'nama_anak'     => $dataAnak['nama'],
                         'tanggal_lahir' => $dataAnak['tanggal_lahir'],
-                        'jenis_kelamin' => $dataAnak['jenis_kelamin'] ?? 'L', // Default L jika frontend tidak mengirim
+                        'jenis_kelamin' => $dataAnak['jenis_kelamin'] ?? 'L',
                     ]);
                 }
             }
 
-            // Sahkan semua proses!
             DB::commit();
 
             return response()->json([
@@ -68,39 +90,51 @@ class WargaController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
-            DB::rollBack(); // Batal simpan semua jika terjadi error
+            DB::rollBack();
             return response()->json([
                 'status' => 'gagal',
                 'pesan'  => 'Terjadi kesalahan sistem: ' . $e->getMessage()
             ], 500);
         }
     }
+
     public function index()
     {
-        // Mengambil semua data keluarga beserta jumlah anaknya dari database
-        // latest() agar data yang baru ditambahkan muncul paling atas
-        $warga = WargaKeluarga::withCount('anak')->latest()->get();
+        // Mulai query
+        $query = WargaKeluarga::withCount('anak')->latest();
+
+        // PANGGIL FILTER MULTI-TENANCY
+        $posyanduId = $this->getPosyanduId();
+        if ($posyanduId) {
+            $query->where('posyandu_id', $posyanduId); // Hanya tampilkan warga di posyandu dia
+        }
+
+        $warga = $query->get();
 
         return response()->json([
             'status' => 'sukses',
             'data'   => $warga
         ]);
     }
+
     public function resetPassword($id)
     {
-        // 1. Cari data keluarga berdasarkan ID
         $keluarga = WargaKeluarga::find($id);
 
         if (!$keluarga) {
             return response()->json(['status' => 'gagal', 'pesan' => 'Data keluarga tidak ditemukan.'], 404);
         }
 
-        // 2. Pastikan warga tersebut sudah dibuatkan akun login
+        // TAMBAHAN KEAMANAN: Pastikan Kader tidak reset password warga dari posyandu lain
+        $posyanduId = $this->getPosyanduId();
+        if ($posyanduId && $keluarga->posyandu_id != $posyanduId) {
+            return response()->json(['status' => 'gagal', 'pesan' => 'Akses ditolak. Warga ini bukan dari Posyandu Anda.'], 403);
+        }
+
         if (!$keluarga->user_id) {
             return response()->json(['status' => 'gagal', 'pesan' => 'Keluarga ini belum memiliki akun login.'], 400);
         }
 
-        // 3. Cari akun User-nya dan reset password menjadi NIK kepala keluarga
         $user = User::find($keluarga->user_id);
         if ($user) {
             $user->password = Hash::make($keluarga->nik_kepala_keluarga);
@@ -114,44 +148,69 @@ class WargaController extends Controller
 
         return response()->json(['status' => 'gagal', 'pesan' => 'Akun pengguna tidak ditemukan.'], 404);
     }
+
     public function getListAnak()
     {
-        // Murni hanya mengambil kolom identitas dari tabel anak
-        $anak = \App\Models\WargaAnak::select('id', 'nama_anak', 'tanggal_lahir', 'jenis_kelamin')
-            ->distinct() // Mencegah nama dan data yang 100% sama persis ditarik berulang kali
-            ->get();
+        $table = (new WargaAnak)->getTable(); // Deteksi nama tabel otomatis
+        $keluargaTable = (new WargaKeluarga)->getTable();
 
-        return response()->json([
-            'status' => 'sukses',
-            'data' => $anak
-        ]);
+        $query = WargaAnak::select("$table.id", "$table.nama_anak", "$table.tanggal_lahir", "$table.jenis_kelamin");
+
+        $posyanduId = $this->getPosyanduId();
+        if ($posyanduId) {
+            $query->join($keluargaTable, "$table.keluarga_id", '=', "$keluargaTable.id")
+                ->where("$keluargaTable.posyandu_id", $posyanduId);
+        }
+
+        return response()->json(['status' => 'sukses', 'data' => $query->distinct()->get()]);
     }
+
     public function getListRemaja()
     {
-        // Mengambil semua data remaja beserta tanggal lahir untuk hitung umur di React
-        $remaja = \App\Models\WargaRemaja::select('id', 'nama_remaja', 'tanggal_lahir', 'jenis_kelamin')->get();
+        $table = (new WargaRemaja)->getTable();
+        $keluargaTable = (new WargaKeluarga)->getTable();
 
-        return response()->json([
-            'status' => 'sukses',
-            'data' => $remaja
-        ]);
+        $query = WargaRemaja::select("$table.id", "$table.nama_remaja", "$table.tanggal_lahir", "$table.jenis_kelamin");
+
+        $posyanduId = $this->getPosyanduId();
+        if ($posyanduId) {
+            $query->join($keluargaTable, "$table.keluarga_id", '=', "$keluargaTable.id")
+                ->where("$keluargaTable.posyandu_id", $posyanduId);
+        }
+
+        return response()->json(['status' => 'sukses', 'data' => $query->distinct()->get()]);
     }
+
     public function getListIbu()
     {
-        // Mengambil warga dewasa khusus perempuan (P)
-        $ibu = \App\Models\WargaDewasa::where('jenis_kelamin', 'P')
-            ->select('id', 'nama_lengkap', 'tanggal_lahir')
-            ->get();
+        $table = (new WargaDewasa)->getTable();
+        $keluargaTable = (new WargaKeluarga)->getTable();
 
-        return response()->json([
-            'status' => 'sukses',
-            'data' => $ibu
-        ]);
+        $query = WargaDewasa::select("$table.id", "$table.nama_lengkap", "$table.tanggal_lahir")
+            ->where("$table.jenis_kelamin", 'P');
+
+        $posyanduId = $this->getPosyanduId();
+        if ($posyanduId) {
+            $query->join($keluargaTable, "$table.keluarga_id", '=', "$keluargaTable.id")
+                ->where("$keluargaTable.posyandu_id", $posyanduId);
+        }
+
+        return response()->json(['status' => 'sukses', 'data' => $query->distinct()->get()]);
     }
+
     public function getListLansia()
     {
-        // Mengambil semua warga dewasa untuk dropdown form Lansia (Laki-laki & Perempuan)
-        $lansia = \App\Models\WargaDewasa::select('id', 'nama_lengkap', 'jenis_kelamin')->get();
-        return response()->json(['status' => 'sukses', 'data' => $lansia]);
+        $table = (new WargaDewasa)->getTable();
+        $keluargaTable = (new WargaKeluarga)->getTable();
+
+        $query = WargaDewasa::select("$table.id", "$table.nama_lengkap", "$table.jenis_kelamin");
+
+        $posyanduId = $this->getPosyanduId();
+        if ($posyanduId) {
+            $query->join($keluargaTable, "$table.keluarga_id", '=', "$keluargaTable.id")
+                ->where("$keluargaTable.posyandu_id", $posyanduId);
+        }
+
+        return response()->json(['status' => 'sukses', 'data' => $query->distinct()->get()]);
     }
 }

@@ -26,7 +26,7 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $user = User::where('username', $request->username)->first();
+        $user = User::with('posyandu')->where('username', $request->username)->first();
 
         // Cek apakah user ada dan password benar
         if (! $user || ! Hash::check($request->password, $user->password)) {

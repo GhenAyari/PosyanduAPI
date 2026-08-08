@@ -11,19 +11,61 @@ use App\Models\PemeriksaanLansia;
 
 class DraftController extends Controller
 {
-    public function getDrafts($kelompok)
+    public function getDrafts(Request $request, $kelompok)
     {
+        $user = $request->user();
+
+        // Ambil ID Posyandu dari user yang login (Kader / Ketua)
+        $posyanduId = in_array($user->role, ['ketua', 'kader']) ? $user->posyandu_id : null;
+
         $data = [];
 
-        // Mengambil data berdasarkan parameter kelompok di URL
-        if ($kelompok === 'balita') {
-            $data = PemeriksaanBalita::where('status_form', 'draft')->get();
-        } elseif ($kelompok === 'remaja') {
-            $data = PemeriksaanRemaja::where('status_form', 'draft')->get();
-        } elseif ($kelompok === 'hamil') {
-            $data = PemeriksaanHamil::where('status_form', 'draft')->get();
-        } elseif ($kelompok === 'lansia') {
-            $data = PemeriksaanLansia::where('status_form', 'draft')->get();
+        // Pilih model berdasarkan parameter {kelompok} yang dikirim dari React
+        switch ($kelompok) {
+            case 'balita':
+                $query = PemeriksaanBalita::where('status_form', 'draft');
+                if ($posyanduId) {
+                    $query->whereHas('kader', function($q) use ($posyanduId) {
+                        $q->where('posyandu_id', $posyanduId);
+                    });
+                }
+                // Jika ingin mengambil nama anak di draf, gunakan ->with('anak')
+                $data = $query->get();
+                break;
+
+            case 'remaja':
+                $query = PemeriksaanRemaja::where('status_form', 'draft');
+                if ($posyanduId) {
+                    $query->whereHas('kader', function($q) use ($posyanduId) {
+                        $q->where('posyandu_id', $posyanduId);
+                    });
+                }
+                $data = $query->get();
+                break;
+
+            case 'hamil':
+            case 'ibu':
+                $query = PemeriksaanHamil::where('status_form', 'draft');
+                if ($posyanduId) {
+                    $query->whereHas('kader', function($q) use ($posyanduId) {
+                        $q->where('posyandu_id', $posyanduId);
+                    });
+                }
+                $data = $query->get();
+                break;
+
+            case 'lansia':
+                $query = PemeriksaanLansia::where('status_form', 'draft');
+                if ($posyanduId) {
+                    $query->whereHas('kader', function($q) use ($posyanduId) {
+                        $q->where('posyandu_id', $posyanduId);
+                    });
+                }
+                $data = $query->get();
+                break;
+
+            default:
+                return response()->json(['status' => 'gagal', 'pesan' => 'Kelompok sasaran tidak valid'], 400);
         }
 
         return response()->json([

@@ -21,4 +21,10 @@ class PemeriksaanLansia extends Model
         'dokumentasi_foto' => 'array',
         'tanggal_periksa' => 'date'
     ];
+
+    public function kader()
+    {
+        // Mengarahkan 'kader_id' di tabel pemeriksaan ke tabel 'users'
+        return $this->belongsTo(User::class, 'kader_id');
+    }
 }

@@ -24,4 +24,8 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+    public function posyandu()
+    {
+        return $this->belongsTo(Posyandu::class, 'posyandu_id');
+    }
 }

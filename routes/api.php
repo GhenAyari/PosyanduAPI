@@ -31,10 +31,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Rute umum untuk semua user yang berhasil login
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/me', function () {
-        return response()->json(['status' => 'sukses', 'data' => auth()->user()]);
+    Route::get('/me', function (\Illuminate\Http\Request $request) {
+        return response()->json([
+            'status' => 'sukses',
+            // Gunakan ->load() untuk mengambil relasi pada data user yang sedang login
+            'data' => $request->user()->load('posyandu')
+        ]);
     });
-
     // ----------------------------------------------------
     // GRUP A: Khusus KADER dan KETUA POSYANDU
     // (Akses operasional posyandu harian & Artikel)

@@ -17,7 +17,7 @@ return new class extends Migration
             // Tambahan 3 kolom baru di bawah ini:
             $table->string('username')->unique();
             $table->string('role')->default('warga');
-            $table->string('posyandu')->nullable(); // nullable karena Superadmin tidak terikat 1 posyandu
+            $table->unsignedBigInteger('posyandu_id')->nullable();
 
             $table->string('email')->unique()->nullable();
             $table->timestamp('email_verified_at')->nullable();
