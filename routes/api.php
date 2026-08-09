@@ -28,7 +28,10 @@ Route::get('/artikels/{id}', [ArtikelController::class, 'show']);
 // 2. PROTECTED ROUTES (Wajib punya token/login)
 // ==========================================
 Route::middleware('auth:sanctum')->group(function () {
-
+    Route::post('/formulir-identifikasi', [\App\Http\Controllers\Api\FormulirIdentifikasiController::class, 'store']);
+    Route::get('/formulir-identifikasi', [\App\Http\Controllers\Api\FormulirIdentifikasiController::class, 'index']);
+    Route::post('/pengaduan-masyarakat', [\App\Http\Controllers\Api\PengaduanMasyarakatController::class, 'store']);
+    Route::get('/pengaduan-masyarakat', [\App\Http\Controllers\Api\PengaduanMasyarakatController::class, 'index']);
     // Rute umum untuk semua user yang berhasil login
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', function (\Illuminate\Http\Request $request) {
@@ -99,6 +102,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // ----------------------------------------------------
     Route::middleware(CheckRole::class.':superadmin')->group(function () {
         // Nanti rute untuk dashboard rekap desa ditaruh di sini
+        Route::get('/admin/pengaduan', [\App\Http\Controllers\Api\PengaduanMasyarakatController::class, 'getAllForAdmin']);
+        Route::patch('/admin/pengaduan/{id}/status', [\App\Http\Controllers\Api\PengaduanMasyarakatController::class, 'updateStatus']);
+        Route::get('/admin/posyandu-updates', [\App\Http\Controllers\Api\PengaduanMasyarakatController::class, 'getLatestUpdateTiapPosyandu']);
+        Route::get('/admin/formulir', [\App\Http\Controllers\Api\FormulirIdentifikasiController::class, 'getAllForAdmin']);
+        Route::get('/admin/statistik', [\App\Http\Controllers\Api\PengaduanMasyarakatController::class, 'getStatistik']);
+        // ... rute admin lainnya ...
+        Route::delete('/admin/formulir/{id}', [\App\Http\Controllers\Api\FormulirIdentifikasiController::class, 'destroyForAdmin']);
+        Route::delete('/admin/pengaduan/{id}', [\App\Http\Controllers\Api\PengaduanMasyarakatController::class, 'destroyForAdmin']);
     });
 
 });
