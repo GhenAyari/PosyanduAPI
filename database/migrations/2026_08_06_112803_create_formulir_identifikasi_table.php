@@ -18,6 +18,7 @@ return new class extends Migration
             $table->enum('bidang', ['pendidikan', 'pekerjaan_umum', 'perumahan_rakyat', 'trantibumlinmas', 'sosial']);
             $table->string('sub_bidang');
             $table->json('data_formulir'); // Disimpan dalam format JSON agar fleksibel
+            $table->json('dokumentasi_foto')->nullable();
             $table->timestamps();
         });
     }

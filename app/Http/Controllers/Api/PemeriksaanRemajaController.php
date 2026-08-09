@@ -11,11 +11,12 @@ class PemeriksaanRemajaController extends Controller
 {
     public function store(Request $request)
     {
+        // VALIDASI DIPERKETAT: Wajib isi nama jika pilih "Tambah Baru"
         $request->validate([
             'pemeriksaan_id'     => 'nullable|integer',
-            'remaja_id'          => 'nullable|string', // Bisa berisi ID, atau kosong jika baru
-            'nama_remaja_baru'   => 'nullable|string',
-            'jenis_kelamin_baru' => 'nullable|in:L,P',
+            'remaja_id'          => 'required|string',
+            'nama_remaja_baru'   => 'required_if:remaja_id,baru|string',
+            'jenis_kelamin_baru' => 'required_if:remaja_id,baru|in:L,P',
             'tanggal_periksa'    => 'required|date',
             'umur_tahun'         => 'required|integer|min:0',
             'berat_badan'        => 'required|numeric',
@@ -30,22 +31,19 @@ class PemeriksaanRemajaController extends Controller
         $remajaId = $request->remaja_id;
 
         // LOGIKA AUTO-DAFTAR: Jika kader memilih "Tambah Baru"
+        // LOGIKA BARU: Hanya simpan nama untuk riwayat periksa, TANPA buat akun/keluarga
         if (!$remajaId || $remajaId === 'baru' || $remajaId === 'null') {
-            // Karena tabel warga_remaja mewajibkan tanggal_lahir,
-            // kita buat perkiraan tanggal lahir dari umur (1 Januari tahun perkiraan)
             $tahunLahir = date('Y', strtotime($request->tanggal_periksa)) - $request->umur_tahun;
-            $tanggalLahirPerkiraan = $tahunLahir . '-01-01';
 
             $remajaBaru = \App\Models\WargaRemaja::create([
                 'nama_remaja'   => $request->nama_remaja_baru,
                 'jenis_kelamin' => $request->jenis_kelamin_baru,
-                'tanggal_lahir' => $tanggalLahirPerkiraan,
-                'keluarga_id'   => null, // Bebas dari belenggu Kartu Keluarga!
+                'tanggal_lahir' => $tahunLahir . '-01-01',
+                'keluarga_id'   => null, // <-- Biarkan kosong agar tersembunyi dari Kelola Warga & Dropdown
             ]);
 
             $remajaId = $remajaBaru->id;
         }
-
         // Proses unggah foto (jika ada)
         $fotoPaths = [];
         if ($request->hasFile('dokumentasi_foto')) {

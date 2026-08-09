@@ -23,6 +23,7 @@ return new class extends Migration
             $table->text('isi_keluhan');
             $table->string('lokasi_masalah')->nullable();
             $table->enum('status', ['menunggu', 'diproses', 'selesai'])->default('menunggu');
+            $table->json('lampiran')->nullable();
             $table->timestamps();
         });
     }
