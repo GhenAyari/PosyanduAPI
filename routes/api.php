@@ -86,6 +86,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // ----------------------------------------------------
     Route::middleware(CheckRole::class.':ketua')->group(function () {
         // Nanti rute untuk edit profil & jadwal posyandu ditaruh di sini
+        Route::get('/posyandu/me', [\App\Http\Controllers\Api\PosyanduController::class, 'getMe']);
+        Route::post('/posyandu/me/update', [\App\Http\Controllers\Api\PosyanduController::class, 'updateMe']);
     });
 
     // ----------------------------------------------------
