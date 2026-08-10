@@ -23,4 +23,9 @@ class Posyandu extends Model
     {
         return $this->hasMany(WargaKeluarga::class, 'posyandu_id');
     }
+    // Tambahkan ini di dalam class Posyandu
+    public function jadwal()
+    {
+        return $this->hasOne(Jadwal::class, 'posyandu_id');
+    }
 }
