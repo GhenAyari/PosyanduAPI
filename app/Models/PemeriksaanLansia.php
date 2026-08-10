@@ -27,4 +27,7 @@ class PemeriksaanLansia extends Model
         // Mengarahkan 'kader_id' di tabel pemeriksaan ke tabel 'users'
         return $this->belongsTo(User::class, 'kader_id');
     }
+    public function lansia() {
+        return $this->belongsTo(WargaDewasa::class, 'lansia_id');
+    }
 }

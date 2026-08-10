@@ -32,21 +32,17 @@ class PemeriksaanHamilController extends Controller
 
         $ibuId = $request->ibu_id;
 
-        // LOGIKA BARU: Hanya simpan nama untuk riwayat periksa, TANPA buat akun/keluarga
         if (!$ibuId || $ibuId === 'baru' || $ibuId === 'null') {
             $tanggalLahirPerkiraan = date('Y-m-d', strtotime('-25 years'));
-
             $ibuBaru = \App\Models\WargaDewasa::create([
                 'nama_lengkap'  => $request->nama_ibu_baru,
                 'jenis_kelamin' => 'P',
                 'tanggal_lahir' => $tanggalLahirPerkiraan,
-                'keluarga_id'   => null, // <-- Biarkan kosong
+                'keluarga_id'   => null,
             ]);
-
             $ibuId = $ibuBaru->id;
         }
 
-        // Proses unggah foto
         $fotoPaths = [];
         if ($request->hasFile('dokumentasi_foto')) {
             foreach ($request->file('dokumentasi_foto') as $file) {
@@ -54,7 +50,6 @@ class PemeriksaanHamilController extends Controller
             }
         }
 
-        // Simpan data pemeriksaan (UBAH JADI PemeriksaanHamil)
         $pemeriksaan = PemeriksaanHamil::updateOrCreate(
             ['id' => $request->pemeriksaan_id],
             [
@@ -79,6 +74,22 @@ class PemeriksaanHamilController extends Controller
             'pesan'  => $request->status_form === 'draft' ? 'Draf Ibu Hamil disimpan.' : 'Data Ibu Hamil berhasil disimpan.',
             'data'   => $pemeriksaan
         ], 201);
-}
-}
+    }
 
+    // --- FUNGSI ADMIN ---
+    public function getForAdmin(Request $request)
+    {
+        $posyanduId = $request->posyandu_id;
+        $data = PemeriksaanHamil::with('ibu')->whereHas('kader', function($query) use ($posyanduId) {
+            $query->where('posyandu_id', $posyanduId);
+        })->latest()->get();
+
+        return response()->json(['status' => 'sukses', 'data' => $data]);
+    }
+
+    public function destroyForAdmin($id)
+    {
+        PemeriksaanHamil::findOrFail($id)->delete();
+        return response()->json(['status' => 'sukses', 'pesan' => 'Data berhasil dihapus.']);
+    }
+}

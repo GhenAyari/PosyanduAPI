@@ -66,4 +66,20 @@ class PemeriksaanBalitaController extends Controller
             'data'   => $pemeriksaan
         ], 201);
     }
+    public function getForAdmin(Request $request)
+    {
+        $posyanduId = $request->posyandu_id;
+        // Mengambil data balita yang diperiksa oleh kader di posyandu tersebut
+        $data = PemeriksaanBalita::with('anak')->whereHas('kader', function($query) use ($posyanduId) {
+            $query->where('posyandu_id', $posyanduId);
+        })->latest()->get();
+
+        return response()->json(['status' => 'sukses', 'data' => $data]);
+    }
+
+    public function destroyForAdmin($id)
+    {
+        PemeriksaanBalita::findOrFail($id)->delete();
+        return response()->json(['status' => 'sukses', 'pesan' => 'Data berhasil dihapus.']);
+    }
 }

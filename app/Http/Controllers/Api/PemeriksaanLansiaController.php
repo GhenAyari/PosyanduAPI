@@ -14,7 +14,7 @@ class PemeriksaanLansiaController extends Controller
         $request->validate([
             'pemeriksaan_id'     => 'nullable|integer',
             'lansia_id'          => 'required|string',
-            'nama_lansia_baru'   => 'required_if:lansia_id,baru|string', // <-- Kunci keamanannya di sini
+            'nama_lansia_baru'   => 'required_if:lansia_id,baru|string',
             'jenis_kelamin_baru' => 'required_if:lansia_id,baru|in:L,P',
             'tanggal_periksa'    => 'required|date',
             'berat_badan'        => 'required|numeric',
@@ -40,7 +40,7 @@ class PemeriksaanLansiaController extends Controller
                 'nama_lengkap'  => $request->nama_lansia_baru,
                 'jenis_kelamin' => $request->jenis_kelamin_baru,
                 'tanggal_lahir' => $tanggalLahirPerkiraan,
-                'keluarga_id'   => null, // <-- Biarkan kosong
+                'keluarga_id'   => null,
             ]);
 
             $lansiaId = $lansiaBaru->id;
@@ -54,7 +54,7 @@ class PemeriksaanLansiaController extends Controller
             }
         }
 
-        // Simpan data pemeriksaan (UBAH JADI PemeriksaanLansia)
+        // Simpan data pemeriksaan
         $pemeriksaan = PemeriksaanLansia::updateOrCreate(
             ['id' => $request->pemeriksaan_id],
             [
@@ -78,5 +78,27 @@ class PemeriksaanLansiaController extends Controller
             'pesan'  => $request->status_form === 'draft' ? 'Draf Lansia disimpan.' : 'Data Lansia berhasil disimpan.',
             'data'   => $pemeriksaan
         ], 201);
-}
+    }
+
+    // =========================================================================
+    // TAMBAHAN BARU UNTUK ADMIN DESA (GET & DELETE)
+    // =========================================================================
+
+    public function getForAdmin(Request $request)
+    {
+        $posyanduId = $request->posyandu_id;
+
+        // Memuat relasi 'lansia' agar nama lansia otomatis ikut ke React
+        $data = PemeriksaanLansia::with('lansia')->whereHas('kader', function($query) use ($posyanduId) {
+            $query->where('posyandu_id', $posyanduId);
+        })->latest()->get();
+
+        return response()->json(['status' => 'sukses', 'data' => $data]);
+    }
+
+    public function destroyForAdmin($id)
+    {
+        PemeriksaanLansia::findOrFail($id)->delete();
+        return response()->json(['status' => 'sukses', 'pesan' => 'Data berhasil dihapus.']);
+    }
 }

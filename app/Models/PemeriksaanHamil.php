@@ -27,4 +27,7 @@ class PemeriksaanHamil extends Model
         // Mengarahkan 'kader_id' di tabel pemeriksaan ke tabel 'users'
         return $this->belongsTo(User::class, 'kader_id');
     }
+    public function ibu() {
+        return $this->belongsTo(WargaDewasa::class, 'ibu_id');
+    }
 }

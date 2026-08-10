@@ -110,6 +110,28 @@ Route::middleware('auth:sanctum')->group(function () {
         // ... rute admin lainnya ...
         Route::delete('/admin/formulir/{id}', [\App\Http\Controllers\Api\FormulirIdentifikasiController::class, 'destroyForAdmin']);
         Route::delete('/admin/pengaduan/{id}', [\App\Http\Controllers\Api\PengaduanMasyarakatController::class, 'destroyForAdmin']);
+        // Rute Menampilkan Data Kesehatan berdasarkan Posyandu
+        Route::get('/admin/pemeriksaan/balita', [\App\Http\Controllers\Api\PemeriksaanBalitaController::class, 'getForAdmin']);
+        Route::get('/admin/pemeriksaan/remaja', [\App\Http\Controllers\Api\PemeriksaanRemajaController::class, 'getForAdmin']);
+        Route::get('/admin/pemeriksaan/ibu-hamil', [\App\Http\Controllers\Api\PemeriksaanHamilController::class, 'getForAdmin']);
+        Route::get('/admin/pemeriksaan/lansia', [\App\Http\Controllers\Api\PemeriksaanLansiaController::class, 'getForAdmin']);
+
+        // Rute Menghapus Data Kesehatan
+        Route::delete('/admin/pemeriksaan/balita/{id}', [\App\Http\Controllers\Api\PemeriksaanBalitaController::class, 'destroyForAdmin']);
+        Route::delete('/admin/pemeriksaan/remaja/{id}', [\App\Http\Controllers\Api\PemeriksaanRemajaController::class, 'destroyForAdmin']);
+        Route::delete('/admin/pemeriksaan/ibu-hamil/{id}', [\App\Http\Controllers\Api\PemeriksaanHamilController::class, 'destroyForAdmin']);
+        Route::delete('/admin/pemeriksaan/lansia/{id}', [\App\Http\Controllers\Api\PemeriksaanLansiaController::class, 'destroyForAdmin']);
+    });
+
+    // ----------------------------------------------------
+    // GRUP E: Khusus PETUGAS PUSKESMAS
+    // (Akses read-only laporan kesehatan 9 posyandu)
+    // ----------------------------------------------------
+    Route::middleware(CheckRole::class.':puskesmas')->group(function () {
+        Route::get('/puskesmas/pemeriksaan/balita', [\App\Http\Controllers\Api\PemeriksaanBalitaController::class, 'getForAdmin']);
+        Route::get('/puskesmas/pemeriksaan/remaja', [\App\Http\Controllers\Api\PemeriksaanRemajaController::class, 'getForAdmin']);
+        Route::get('/puskesmas/pemeriksaan/ibu-hamil', [\App\Http\Controllers\Api\PemeriksaanHamilController::class, 'getForAdmin']);
+        Route::get('/puskesmas/pemeriksaan/lansia', [\App\Http\Controllers\Api\PemeriksaanLansiaController::class, 'getForAdmin']);
     });
 
 });

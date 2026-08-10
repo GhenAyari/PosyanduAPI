@@ -5,13 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\PemeriksaanRemaja;
+use App\Models\WargaRemaja;
 use Illuminate\Support\Facades\Storage;
 
 class PemeriksaanRemajaController extends Controller
 {
     public function store(Request $request)
     {
-        // VALIDASI DIPERKETAT: Wajib isi nama jika pilih "Tambah Baru"
         $request->validate([
             'pemeriksaan_id'     => 'nullable|integer',
             'remaja_id'          => 'required|string',
@@ -30,21 +30,17 @@ class PemeriksaanRemajaController extends Controller
 
         $remajaId = $request->remaja_id;
 
-        // LOGIKA AUTO-DAFTAR: Jika kader memilih "Tambah Baru"
-        // LOGIKA BARU: Hanya simpan nama untuk riwayat periksa, TANPA buat akun/keluarga
         if (!$remajaId || $remajaId === 'baru' || $remajaId === 'null') {
             $tahunLahir = date('Y', strtotime($request->tanggal_periksa)) - $request->umur_tahun;
-
             $remajaBaru = \App\Models\WargaRemaja::create([
                 'nama_remaja'   => $request->nama_remaja_baru,
                 'jenis_kelamin' => $request->jenis_kelamin_baru,
                 'tanggal_lahir' => $tahunLahir . '-01-01',
-                'keluarga_id'   => null, // <-- Biarkan kosong agar tersembunyi dari Kelola Warga & Dropdown
+                'keluarga_id'   => null,
             ]);
-
             $remajaId = $remajaBaru->id;
         }
-        // Proses unggah foto (jika ada)
+
         $fotoPaths = [];
         if ($request->hasFile('dokumentasi_foto')) {
             foreach ($request->file('dokumentasi_foto') as $file) {
@@ -52,7 +48,6 @@ class PemeriksaanRemajaController extends Controller
             }
         }
 
-        // Simpan data pemeriksaan
         $pemeriksaan = PemeriksaanRemaja::updateOrCreate(
             ['id' => $request->pemeriksaan_id],
             [
@@ -74,5 +69,22 @@ class PemeriksaanRemajaController extends Controller
             'pesan'  => $request->status_form === 'draft' ? 'Draf Remaja disimpan.' : 'Data pemeriksaan berhasil disimpan.',
             'data'   => $pemeriksaan
         ], 201);
+    }
+
+    // --- FUNGSI ADMIN ---
+    public function getForAdmin(Request $request)
+    {
+        $posyanduId = $request->posyandu_id;
+        $data = PemeriksaanRemaja::with('remaja')->whereHas('kader', function($query) use ($posyanduId) {
+            $query->where('posyandu_id', $posyanduId);
+        })->latest()->get();
+
+        return response()->json(['status' => 'sukses', 'data' => $data]);
+    }
+
+    public function destroyForAdmin($id)
+    {
+        PemeriksaanRemaja::findOrFail($id)->delete();
+        return response()->json(['status' => 'sukses', 'pesan' => 'Data berhasil dihapus.']);
     }
 }
