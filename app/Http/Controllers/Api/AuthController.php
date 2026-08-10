@@ -62,5 +62,35 @@ class AuthController extends Controller
             'status' => 'sukses',
             'pesan' => 'Logout berhasil'
         ]);
+
+    }
+
+    public function updateAkunWarga(Request $request)
+    {
+        $user = $request->user();
+
+        // Validasi input
+        $request->validate([
+            'username' => 'required|string|max:255',
+            'current_password' => 'required|current_password', // Mengecek apakah password lama benar
+            'new_password' => 'nullable|min:6|confirmed' // Confirmed akan otomatis mengecek new_password_confirmation
+        ], [
+            'current_password.current_password' => 'Password saat ini yang Anda masukkan salah.'
+        ]);
+
+        // Update nama/username
+        $user->name = $request->username;
+
+        // Update password JIKA warga mengisinya
+        if ($request->filled('new_password')) {
+            $user->password = bcrypt($request->new_password);
+        }
+
+        $user->save();
+
+        return response()->json([
+            'status' => 'sukses',
+            'pesan' => 'Data akun berhasil diperbarui!'
+        ]);
     }
 }

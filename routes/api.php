@@ -22,6 +22,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/profil-posyandu', [PosyanduController::class, 'index']);
 Route::get('/artikels', [ArtikelController::class, 'index']);
 Route::get('/artikels/{id}', [ArtikelController::class, 'show']);
+Route::get('/makanan', [\App\Http\Controllers\Api\ReferensiMakananController::class, 'index']);
 
 
 // ==========================================
@@ -32,6 +33,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/formulir-identifikasi', [\App\Http\Controllers\Api\FormulirIdentifikasiController::class, 'index']);
     Route::post('/pengaduan-masyarakat', [\App\Http\Controllers\Api\PengaduanMasyarakatController::class, 'store']);
     Route::get('/pengaduan-masyarakat', [\App\Http\Controllers\Api\PengaduanMasyarakatController::class, 'index']);
+
     // Rute umum untuk semua user yang berhasil login
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', function (\Illuminate\Http\Request $request) {
@@ -41,6 +43,9 @@ Route::middleware('auth:sanctum')->group(function () {
             'data' => $request->user()->load('posyandu')
         ]);
     });
+    // Rute untuk warga/user mengupdate username & password mereka sendiri
+    Route::put('/warga/update-akun', [\App\Http\Controllers\Api\AuthController::class, 'updateAkunWarga']);
+
     // ----------------------------------------------------
     // GRUP A: Khusus KADER dan KETUA POSYANDU
     // (Akses operasional posyandu harian & Artikel)
@@ -78,6 +83,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/pemeriksaan-lansia', [\App\Http\Controllers\Api\PemeriksaanLansiaController::class, 'store']);
         // Mengambil daftar draf berdasarkan kelompok sasaran
         Route::get('/draf-pemeriksaan/{kelompok}', [\App\Http\Controllers\Api\DraftController::class, 'getDrafts']);
+        Route::post('/makanan', [\App\Http\Controllers\Api\ReferensiMakananController::class, 'store']);
+        Route::put('/makanan/{id}', [\App\Http\Controllers\Api\ReferensiMakananController::class, 'update']);
+        Route::delete('/makanan/{id}', [\App\Http\Controllers\Api\ReferensiMakananController::class, 'destroy']);
     });
 
     // ----------------------------------------------------
