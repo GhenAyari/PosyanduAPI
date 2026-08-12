@@ -69,24 +69,36 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        // Validasi input
+        // 1. Validasi: Tambahkan pengecekan UNIQUE agar nama tidak boleh sama dengan warga lain
         $request->validate([
-            'username' => 'required|string|max:255',
-            'current_password' => 'required|current_password', // Mengecek apakah password lama benar
-            'new_password' => 'nullable|min:6|confirmed' // Confirmed akan otomatis mengecek new_password_confirmation
+            'username' => 'required|string|max:255|unique:users,username,' . $user->id,
+            'current_password' => 'required|current_password',
+            'new_password' => 'nullable|min:6|confirmed'
         ], [
-            'current_password.current_password' => 'Password saat ini yang Anda masukkan salah.'
+            'current_password.current_password' => 'Password saat ini yang Anda masukkan salah.',
+            'username.unique' => 'Username ini sudah dipakai orang lain. Silakan tambahkan angka/kata lain (misal: Ambarukmo123).'
         ]);
 
-        // Update nama/username
+        // 2. Update Nama Tampilan DAN Username Login-nya!
         $user->name = $request->username;
+        $user->username = $request->username; // <--- BARIS SAKTI AGAR LOGIN BISA PAKAI NAMA BARU
 
-        // Update password JIKA warga mengisinya
+        // 3. Update password JIKA warga mengisinya
         if ($request->filled('new_password')) {
             $user->password = bcrypt($request->new_password);
         }
-
         $user->save();
+
+        // 4. SINKRONISASI KE TABEL WARGA (AGAR DASBOR KADER BERUBAH)
+        $keluarga = \App\Models\WargaKeluarga::where('user_id', $user->id)->first();
+        if ($keluarga) {
+            $keluarga->nama_kepala_keluarga = $request->username;
+            $keluarga->save();
+
+            \App\Models\WargaDewasa::where('keluarga_id', $keluarga->id)
+                ->where('jenis_kelamin', 'L')
+                ->update(['nama_lengkap' => $request->username]);
+        }
 
         return response()->json([
             'status' => 'sukses',

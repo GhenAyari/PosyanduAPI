@@ -17,6 +17,7 @@ return new class extends Migration
             $table->integer('kalori_per_porsi');
             $table->foreignId('dibuat_oleh_posyandu')->nullable()->constrained('posyandus')->cascadeOnDelete();
             $table->timestamps();
+
         });
     }
 
