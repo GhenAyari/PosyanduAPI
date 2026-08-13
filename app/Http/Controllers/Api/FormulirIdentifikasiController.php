@@ -13,16 +13,17 @@ class FormulirIdentifikasiController extends Controller
         $request->validate([
             'bidang'             => 'required|in:pendidikan,pekerjaan_umum,perumahan_rakyat,trantibumlinmas,sosial',
             'sub_bidang'         => 'required|string',
-            'data_formulir'      => 'required|json', // React harus mengirim object JSON yg di-stringify
+            'data_formulir'      => 'required|json',
             'dokumentasi_foto'   => 'nullable|array',
             'dokumentasi_foto.*' => 'image|mimes:jpeg,png,jpg|max:2048'
         ]);
 
         $posyanduId = $request->user()->posyandu_id;
 
-        // Proses unggah foto (jika ada)
+        // Proses unggah foto
         $fotoPaths = [];
-        if ($request->hasFile('dokumentasi_foto')) {
+        // PERBAIKAN: Lebih aman menangkap file secara langsung
+        if ($request->file('dokumentasi_foto')) {
             foreach ($request->file('dokumentasi_foto') as $file) {
                 $fotoPaths[] = $file->store('formulir_foto', 'public');
             }
@@ -34,7 +35,9 @@ class FormulirIdentifikasiController extends Controller
             'bidang'           => $request->bidang,
             'sub_bidang'       => $request->sub_bidang,
             'data_formulir'    => json_decode($request->data_formulir, true),
-            'dokumentasi_foto' => count($fotoPaths) > 0 ? $fotoPaths : null,
+
+            // PERBAIKAN: Wajib dibungkus json_encode agar formatnya akurat!
+            'dokumentasi_foto' => count($fotoPaths) > 0 ? json_encode($fotoPaths) : null,
         ]);
 
         return response()->json([

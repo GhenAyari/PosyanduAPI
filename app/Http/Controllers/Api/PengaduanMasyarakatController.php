@@ -20,13 +20,14 @@ class PengaduanMasyarakatController extends Controller
             'isi_keluhan'    => 'required|string',
             'lokasi_masalah' => 'nullable|string',
             'lampiran'       => 'nullable|array|max:3',
-            'lampiran.*'     => 'file|mimes:jpeg,png,jpg,pdf,doc,docx|max:2048' // Warga bisa kirim foto atau dokumen
+            'lampiran.*'     => 'file|mimes:jpeg,png,jpg,pdf,doc,docx|max:2048'
         ]);
 
         $posyanduId = $request->user()->posyandu_id;
 
         $lampiranPaths = [];
-        if ($request->hasFile('lampiran')) {
+        // PERBAIKAN: Tangkap file lampiran langsung
+        if ($request->file('lampiran')) {
             foreach ($request->file('lampiran') as $file) {
                 $lampiranPaths[] = $file->store('pengaduan_lampiran', 'public');
             }
@@ -42,7 +43,9 @@ class PengaduanMasyarakatController extends Controller
             'alamat'         => $request->alamat,
             'isi_keluhan'    => $request->isi_keluhan,
             'lokasi_masalah' => $request->lokasi_masalah,
-            'lampiran'       => count($lampiranPaths) > 0 ? $lampiranPaths : null,
+
+            // PERBAIKAN: Wajib dibungkus json_encode!
+            'lampiran'       => count($lampiranPaths) > 0 ? json_encode($lampiranPaths) : null,
             'status'         => 'menunggu'
         ]);
 
@@ -99,17 +102,46 @@ class PengaduanMasyarakatController extends Controller
         ]);
     }
     // KHUSUS SUPERADMIN: Mengambil waktu terakhir ada pergerakan data di tiap posyandu
+    // KHUSUS SUPERADMIN: Mengambil waktu terakhir ada pergerakan data di tiap posyandu
+    // KHUSUS SUPERADMIN: Mengambil waktu terakhir ada pergerakan data di tiap posyandu
     public function getLatestUpdateTiapPosyandu()
     {
-        // Saat ini mengecek tabel pengaduan.
-        // Nanti saat pencatatan kesehatan sudah dibuat, kita bisa gabungkan logikanya di sini!
-        $updates = \App\Models\PengaduanMasyarakat::selectRaw('posyandu_id, MAX(created_at) as last_update')
+        // 1. Ambil update terakhir dari tabel Pengaduan
+        $pengaduanUpdates = \App\Models\PengaduanMasyarakat::selectRaw('posyandu_id, MAX(created_at) as last_update')
             ->groupBy('posyandu_id')
-            ->pluck('last_update', 'posyandu_id');
+            ->pluck('last_update', 'posyandu_id')
+            ->toArray();
+
+        // 2. Ambil update terakhir dari tabel Formulir Identifikasi
+        $formulirUpdates = \App\Models\FormulirIdentifikasi::selectRaw('posyandu_id, MAX(created_at) as last_update')
+            ->groupBy('posyandu_id')
+            ->pluck('last_update', 'posyandu_id')
+            ->toArray();
+
+        // 3. Gabungkan semua ID Posyandu yang punya data
+        $posyanduIds = collect(array_keys($pengaduanUpdates))
+            ->merge(array_keys($formulirUpdates))
+            ->unique();
+
+        $finalUpdates = [];
+
+        // 4. Bandingkan waktunya dengan logika IF yang pasti (tanpa fungsi max yang labil)
+        foreach ($posyanduIds as $id) {
+            $waktuPengaduan = $pengaduanUpdates[$id] ?? null;
+            $waktuFormulir  = $formulirUpdates[$id] ?? null;
+
+            if ($waktuPengaduan && $waktuFormulir) {
+                // Jika keduanya ada, pilih yang paling baru
+                $finalUpdates[$id] = $waktuPengaduan > $waktuFormulir ? $waktuPengaduan : $waktuFormulir;
+            } else {
+                // Jika salah satu kosong, ambil yang ada isinya
+                $finalUpdates[$id] = $waktuPengaduan ? $waktuPengaduan : $waktuFormulir;
+            }
+        }
 
         return response()->json([
             'status' => 'sukses',
-            'data'   => $updates
+            'data'   => $finalUpdates
         ]);
     }
     // KHUSUS SUPERADMIN: Mengambil statistik laporan terbanyak
