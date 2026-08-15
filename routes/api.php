@@ -97,6 +97,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/data-umum', [\App\Http\Controllers\Api\DataUmumController::class, 'index']);
         Route::post('/data-umum', [\App\Http\Controllers\Api\DataUmumController::class, 'store']);
         Route::delete('/data-umum/{id}', [\App\Http\Controllers\Api\DataUmumController::class, 'destroy']);
+
+        Route::get('/dashboard/stats', [\App\Http\Controllers\Api\DashboardController::class, 'getStats']);
     });
 
     // ----------------------------------------------------
