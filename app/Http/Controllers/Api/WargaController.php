@@ -195,4 +195,96 @@ class WargaController extends Controller
         }
         return response()->json(['status' => 'sukses', 'data' => $query->distinct()->get()]);
     }
+    // =========================================================================
+    // FUNGSI KHUSUS WARGA: MENGAMBIL RAPOR KESEHATAN KELUARGA (REAL-TIME)
+    // =========================================================================
+    public function getRaporKeluarga(Request $request)
+    {
+        $user = $request->user();
+
+        // Cari data keluarga berdasarkan akun Warga yang sedang login
+        $keluarga = WargaKeluarga::where('user_id', $user->id)->first();
+
+        if (!$keluarga) {
+            return response()->json(['status' => 'gagal', 'pesan' => 'Data keluarga tidak ditemukan.'], 404);
+        }
+
+        // 1. Tarik Data Anak beserta Riwayat Pemeriksaan Balita
+        $anakList = WargaAnak::where('keluarga_id', $keluarga->id)->get()->map(function($anak) {
+            $riwayat = DB::table('pemeriksaan_balita')
+                ->where('anak_id', $anak->id)
+                ->orderBy('tanggal_periksa', 'desc')
+                ->get()
+                ->map(function($periksa) {
+                    return [
+                        'bulan'  => date('M Y', strtotime($periksa->tanggal_periksa)),
+                        'bb'     => $periksa->berat_badan . ' kg',
+                        'tb'     => $periksa->tinggi_badan . ' cm',
+                        'status' => $periksa->status_gizi ?: 'Normal'
+                    ];
+                });
+
+            // Hitung usia dalam tahun (jika 0, tampilkan "Di bawah 1")
+            $umur = date_diff(date_create($anak->tanggal_lahir), date_create('today'))->y;
+
+            return [
+                'nama'    => $anak->nama_anak,
+                'gender'  => $anak->jenis_kelamin == 'L' ? 'Laki-laki' : 'Perempuan',
+                'usia'    => $umur > 0 ? $umur . ' Tahun' : 'Di bawah 1 Tahun',
+                'riwayat' => $riwayat
+            ];
+        });
+
+        // 2. Tarik Data Lansia atau Ibu Hamil dari tabel Dewasa
+        $dewasaList = WargaDewasa::where('keluarga_id', $keluarga->id)->get();
+        $lansiaBumil = null;
+
+        foreach ($dewasaList as $dewasa) {
+            // Cek Riwayat Ibu Hamil (Hanya untuk Perempuan)
+            if ($dewasa->jenis_kelamin == 'P') {
+                $riwayatHamil = DB::table('pemeriksaan_hamil')->where('ibu_id', $dewasa->id)->orderBy('tanggal_periksa', 'desc')->get();
+                if ($riwayatHamil->count() > 0) {
+                    $lansiaBumil = [
+                        'nama'    => $dewasa->nama_lengkap,
+                        'jenis'   => 'bumil',
+                        'riwayat' => $riwayatHamil->map(function($r) {
+                            return [
+                                'bulan'  => date('M Y', strtotime($r->tanggal_periksa)),
+                                'ukuran' => $r->lingkar_lengan . ' cm', // LILA
+                                'tensi'  => $r->tekanan_darah ?: '-',
+                                'status' => $r->status_imt ?: 'Normal'
+                            ];
+                        })
+                    ];
+                    break; // Jika ketemu hamil, jadikan prioritas
+                }
+            }
+
+            // Cek Riwayat Lansia
+            $riwayatLansia = DB::table('pemeriksaan_lansia')->where('lansia_id', $dewasa->id)->orderBy('tanggal_periksa', 'desc')->get();
+            if ($riwayatLansia->count() > 0) {
+                $lansiaBumil = [
+                    'nama'    => $dewasa->nama_lengkap,
+                    'jenis'   => 'lansia',
+                    'riwayat' => $riwayatLansia->map(function($r) {
+                        return [
+                            'bulan'  => date('M Y', strtotime($r->tanggal_periksa)),
+                            'ukuran' => $r->berat_badan . ' kg', // BB
+                            'tensi'  => $r->tekanan_darah ?: '-',
+                            'status' => $r->status_imt ?: 'Normal'
+                        ];
+                    })
+                ];
+                break;
+            }
+        }
+
+        return response()->json([
+            'status' => 'sukses',
+            'data' => [
+                'anak' => $anakList,
+                'anggotaLansiaBumil' => $lansiaBumil
+            ]
+        ], 200);
+    }
 }

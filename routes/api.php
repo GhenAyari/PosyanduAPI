@@ -116,7 +116,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // (Akses read-only rapor keluarga)
     // ----------------------------------------------------
     Route::middleware(CheckRole::class.':warga')->group(function () {
-        // Nanti rute untuk melihat rapor balita/keluarga ditaruh di sini
+        Route::get('/warga/rapor-keluarga', [\App\Http\Controllers\Api\WargaController::class, 'getRaporKeluarga']);
     });
 
     // ----------------------------------------------------
@@ -144,7 +144,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/admin/pemeriksaan/remaja/{id}', [\App\Http\Controllers\Api\PemeriksaanRemajaController::class, 'destroyForAdmin']);
         Route::delete('/admin/pemeriksaan/ibu-hamil/{id}', [\App\Http\Controllers\Api\PemeriksaanHamilController::class, 'destroyForAdmin']);
         Route::delete('/admin/pemeriksaan/lansia/{id}', [\App\Http\Controllers\Api\PemeriksaanLansiaController::class, 'destroyForAdmin']);
-    });
+        Route::get('/admin/laporan-posyandu/{posyandu_id}', [\App\Http\Controllers\Api\AdminLaporanController::class, 'getLaporanPosyandu']);
+    }
+    );
 
     // ----------------------------------------------------
     // GRUP E: Khusus PETUGAS PUSKESMAS
