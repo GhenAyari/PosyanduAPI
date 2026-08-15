@@ -86,6 +86,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/makanan', [\App\Http\Controllers\Api\ReferensiMakananController::class, 'store']);
         Route::put('/makanan/{id}', [\App\Http\Controllers\Api\ReferensiMakananController::class, 'update']);
         Route::delete('/makanan/{id}', [\App\Http\Controllers\Api\ReferensiMakananController::class, 'destroy']);
+        Route::get('/rekap-kegiatan', [\App\Http\Controllers\Api\RekapKegiatanController::class, 'index']);
+        Route::post('/rekap-kegiatan', [\App\Http\Controllers\Api\RekapKegiatanController::class, 'store']);
+        Route::delete('/rekap-kegiatan/{id}', [\App\Http\Controllers\Api\RekapKegiatanController::class, 'destroy']);
+
+        Route::get('/pencatatan-kegiatan', [\App\Http\Controllers\Api\PencatatanKegiatanController::class, 'index']);
+        Route::post('/pencatatan-kegiatan', [\App\Http\Controllers\Api\PencatatanKegiatanController::class, 'store']);
+        Route::delete('/pencatatan-kegiatan/{id}', [\App\Http\Controllers\Api\PencatatanKegiatanController::class, 'destroy']);
+
+        Route::get('/data-umum', [\App\Http\Controllers\Api\DataUmumController::class, 'index']);
+        Route::post('/data-umum', [\App\Http\Controllers\Api\DataUmumController::class, 'store']);
+        Route::delete('/data-umum/{id}', [\App\Http\Controllers\Api\DataUmumController::class, 'destroy']);
     });
 
     // ----------------------------------------------------
