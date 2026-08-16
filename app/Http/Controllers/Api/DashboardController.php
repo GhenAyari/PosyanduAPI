@@ -15,10 +15,15 @@ class DashboardController extends Controller
         $bulanIni = Carbon::now()->month;
         $tahunIni = Carbon::now()->year;
 
+        // ... (kode atasnya biarkan sama)
+
         // 1. Kumpulkan ID Kader
         $kaderIds = DB::table('users')->where('posyandu_id', $posyanduId)->pluck('id');
-        // Pastikan tidak error jika array kosong
         if ($kaderIds->isEmpty()) $kaderIds = [0];
+
+        // --- TAMBAHAN BARU: Ambil ID Keluarga di Posyandu ini saja ---
+        $keluargaIds = DB::table('warga_keluarga')->where('posyandu_id', $posyanduId)->pluck('id');
+        if ($keluargaIds->isEmpty()) $keluargaIds = [0];
 
         // 2. Hitung Pemeriksaan Kesehatan Bulan Ini
         $periksaBalita = DB::table('pemeriksaan_balita')->whereIn('kader_id', $kaderIds)->whereMonth('tanggal_periksa', $bulanIni)->whereYear('tanggal_periksa', $tahunIni)->count();
@@ -26,16 +31,19 @@ class DashboardController extends Controller
         $periksaHamil  = DB::table('pemeriksaan_hamil')->whereIn('kader_id', $kaderIds)->whereMonth('tanggal_periksa', $bulanIni)->whereYear('tanggal_periksa', $tahunIni)->count();
         $periksaLansia = DB::table('pemeriksaan_lansia')->whereIn('kader_id', $kaderIds)->whereMonth('tanggal_periksa', $bulanIni)->whereYear('tanggal_periksa', $tahunIni)->count();
 
-        // Total Warga Sasaran
-        $totalBalita = DB::table('warga_anak')->count() ?: 1;
-        $totalRemaja = DB::table('warga_remaja')->count() ?: 1;
-        $totalHamil  = DB::table('warga_dewasa')->count() ?: 1;
-        $totalLansia = DB::table('warga_dewasa')->count() ?: 1;
+        // 3. PERBAIKAN: Total Target per Kelompok untuk Grafik (Boleh overlap)
+        $totalBalita = DB::table('warga_anak')->whereIn('keluarga_id', $keluargaIds)->count();
+        $totalRemaja = DB::table('warga_remaja')->whereIn('keluarga_id', $keluargaIds)->count();
+        $totalHamil  = DB::table('warga_dewasa')->whereIn('keluarga_id', $keluargaIds)->where('jenis_kelamin', 'P')->count(); // Istri masuk sini
+        $totalLansia = DB::table('warga_dewasa')->whereIn('keluarga_id', $keluargaIds)->count(); // Suami & Istri masuk sini
+
+        // 4. TOTAL INDIVIDU UNIK UNTUK KOTAK BIRU (Menghindari Istri Dihitung 2x)
+        $totalDewasaUnik = DB::table('warga_dewasa')->whereIn('keluarga_id', $keluargaIds)->count();
+        $totalWarga = $totalBalita + $totalRemaja + $totalDewasaUnik;
 
         $totalPemeriksaan = $periksaBalita + $periksaRemaja + $periksaHamil + $periksaLansia;
-        $totalWarga = $totalBalita + $totalRemaja + $totalHamil + $totalLansia;
 
-        // Hitung persentase kehadiran (mencegah pembagian dengan 0)
+        // Hitung persentase kehadiran
         $persentaseHadir = $totalWarga > 0 ? round(($totalPemeriksaan / $totalWarga) * 100) : 0;
         if ($persentaseHadir > 100) $persentaseHadir = 100;
 

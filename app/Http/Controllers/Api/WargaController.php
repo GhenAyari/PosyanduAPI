@@ -198,6 +198,9 @@ class WargaController extends Controller
     // =========================================================================
     // FUNGSI KHUSUS WARGA: MENGAMBIL RAPOR KESEHATAN KELUARGA (REAL-TIME)
     // =========================================================================
+    // =========================================================================
+    // FUNGSI KHUSUS WARGA: MENGAMBIL RAPOR KESEHATAN KELUARGA (REAL-TIME)
+    // =========================================================================
     public function getRaporKeluarga(Request $request)
     {
         $user = $request->user();
@@ -235,16 +238,16 @@ class WargaController extends Controller
             ];
         });
 
-        // 2. Tarik Data Lansia atau Ibu Hamil dari tabel Dewasa
+        // 2. PERBAIKAN: Tarik Data Lansia / Ibu Hamil menjadi ARRAY agar bisa nampil semua
         $dewasaList = WargaDewasa::where('keluarga_id', $keluarga->id)->get();
-        $lansiaBumil = null;
+        $daftarLansiaBumil = [];
 
         foreach ($dewasaList as $dewasa) {
             // Cek Riwayat Ibu Hamil (Hanya untuk Perempuan)
             if ($dewasa->jenis_kelamin == 'P') {
                 $riwayatHamil = DB::table('pemeriksaan_hamil')->where('ibu_id', $dewasa->id)->orderBy('tanggal_periksa', 'desc')->get();
                 if ($riwayatHamil->count() > 0) {
-                    $lansiaBumil = [
+                    $daftarLansiaBumil[] = [
                         'nama'    => $dewasa->nama_lengkap,
                         'jenis'   => 'bumil',
                         'riwayat' => $riwayatHamil->map(function($r) {
@@ -256,14 +259,13 @@ class WargaController extends Controller
                             ];
                         })
                     ];
-                    break; // Jika ketemu hamil, jadikan prioritas
                 }
             }
 
             // Cek Riwayat Lansia
             $riwayatLansia = DB::table('pemeriksaan_lansia')->where('lansia_id', $dewasa->id)->orderBy('tanggal_periksa', 'desc')->get();
             if ($riwayatLansia->count() > 0) {
-                $lansiaBumil = [
+                $daftarLansiaBumil[] = [
                     'nama'    => $dewasa->nama_lengkap,
                     'jenis'   => 'lansia',
                     'riwayat' => $riwayatLansia->map(function($r) {
@@ -275,7 +277,6 @@ class WargaController extends Controller
                         ];
                     })
                 ];
-                break;
             }
         }
 
@@ -283,8 +284,43 @@ class WargaController extends Controller
             'status' => 'sukses',
             'data' => [
                 'anak' => $anakList,
-                'anggotaLansiaBumil' => $lansiaBumil
+                'anggotaLansiaBumil' => $daftarLansiaBumil // <-- Sekarang dikirim sebagai Array
             ]
         ], 200);
+    }
+
+    // =========================================================================
+    // FUNGSI KHUSUS WARGA: MENAMBAH ANAK BARU SECARA MANDIRI
+    // =========================================================================
+    public function tambahAnakWarga(Request $request)
+    {
+        $request->validate([
+            'nama_anak'     => 'required|string|max:255',
+            'tanggal_lahir' => 'required|date',
+            'jenis_kelamin' => 'required|in:L,P',
+        ]);
+
+        $user = $request->user();
+
+        // Cari data keluarga berdasarkan akun Warga yang sedang login
+        $keluarga = WargaKeluarga::where('user_id', $user->id)->first();
+
+        if (!$keluarga) {
+            return response()->json(['status' => 'gagal', 'pesan' => 'Data keluarga tidak ditemukan.'], 404);
+        }
+
+        // Simpan anak baru dan otomatis ikat dengan keluarga_id (dan Posyandu keluarga tersebut)
+        $anak = WargaAnak::create([
+            'keluarga_id'   => $keluarga->id,
+            'nama_anak'     => $request->nama_anak,
+            'tanggal_lahir' => $request->tanggal_lahir,
+            'jenis_kelamin' => $request->jenis_kelamin,
+        ]);
+
+        return response()->json([
+            'status' => 'sukses',
+            'pesan'  => 'Data anak berhasil ditambahkan ke keluarga Anda!',
+            'data'   => $anak
+        ], 201);
     }
 }

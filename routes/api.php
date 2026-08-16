@@ -117,6 +117,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ----------------------------------------------------
     Route::middleware(CheckRole::class.':warga')->group(function () {
         Route::get('/warga/rapor-keluarga', [\App\Http\Controllers\Api\WargaController::class, 'getRaporKeluarga']);
+        Route::post('/warga/anak', [\App\Http\Controllers\Api\WargaController::class, 'tambahAnakWarga']);
     });
 
     // ----------------------------------------------------
@@ -145,6 +146,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/admin/pemeriksaan/ibu-hamil/{id}', [\App\Http\Controllers\Api\PemeriksaanHamilController::class, 'destroyForAdmin']);
         Route::delete('/admin/pemeriksaan/lansia/{id}', [\App\Http\Controllers\Api\PemeriksaanLansiaController::class, 'destroyForAdmin']);
         Route::get('/admin/laporan-posyandu/{posyandu_id}', [\App\Http\Controllers\Api\AdminLaporanController::class, 'getLaporanPosyandu']);
+
+        Route::get('/admin/dashboard-analitik', [\App\Http\Controllers\Api\AdminAnalitikController::class, 'getDashboardData']);
     }
     );
 
